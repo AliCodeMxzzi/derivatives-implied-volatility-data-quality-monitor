@@ -1,0 +1,12 @@
+[project]
+name = "iv-quality-monitor"
+version = "0.1.0"
+description = "Data quality monitor for derivatives implied-volatility data"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
