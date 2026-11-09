@@ -74,6 +74,24 @@ STABILITY_GRID_K: float = 0.10  # compare smiles for k in [-this, +this]
 STABILITY_RMS_IV: float = 0.03  # RMS smile change above 3 vol pts -> flag
 STABILITY_HIGH_RMS_IV: float = 0.08
 
+# ML anomaly layer (Stage 6).
+ML_CONTAMINATION: float = 0.05  # share of quotes the forest flags BY CONSTRUCTION
+ML_N_ESTIMATORS: int = 200
+ML_SEED: int = 42
+ML_MIN_ROWS: int = 50  # fewer scored quotes than this -> skip the model
+ML_SEVERITY_HIGH_Q: float = 0.99  # score quantile for severity high
+ML_SEVERITY_MEDIUM_Q: float = 0.975  # ... for medium (flagged below -> low)
+
+# Synthetic anomaly injection (Stage 6). Magnitudes are my choices and
+# directly influence the recall numbers; they are not calibrated to reality.
+SYNTH_SEED: int = 7
+SYNTH_N_PER_TYPE: int = 25
+SYNTH_DB_PATH = DATA_DIR / "synthetic.duckdb"
+SYNTH_SPIKE_FACTORS: tuple[float, ...] = (2.5, 0.4)  # bid/ask multiplied
+SYNTH_STALE_SHIFTS: tuple[float, ...] = (0.85, 1.15)  # bid/ask multiplied
+SYNTH_STALE_DAYS: int = 10  # last_trade_ts moved back this far
+SYNTH_IV_FACTORS: tuple[float, ...] = (1.3, 0.7)  # implied vol multiplied
+
 # Forward estimation from put-call parity (Stage 3).
 FORWARD_N_PAIRS: int = 5  # use the N strikes closest to spot
 FORWARD_MIN_PAIRS: int = 2  # fewer usable pairs -> fall back to spot

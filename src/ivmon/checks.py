@@ -318,9 +318,13 @@ def _tte_map(con: duckdb.DuckDBPyConnection, snapshot_ts: datetime) -> dict:
 
 def _store(con: duckdb.DuckDBPyConnection, snapshot_ts: datetime,
            findings: pd.DataFrame) -> None:
-    """Replace this snapshot's real (non-synthetic) findings."""
-    con.execute("DELETE FROM anomalies WHERE snapshot_ts = ? AND NOT is_synthetic",
-                [snapshot_ts]).fetchall()
+    """Replace this snapshot's real rule-based findings.
+
+    Only the rules owned by this module are replaced; synthetic rows and ML
+    findings (a different module) are left alone.
+    """
+    con.execute("DELETE FROM anomalies WHERE snapshot_ts = ? AND NOT is_synthetic "
+                "AND rule <> 'ml_isolation_forest'", [snapshot_ts]).fetchall()
     if findings.empty:
         return
     out = findings.copy()
