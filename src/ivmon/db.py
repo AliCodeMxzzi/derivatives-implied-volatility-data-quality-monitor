@@ -59,6 +59,46 @@ CREATE TABLE IF NOT EXISTS iv_quotes (
 """
 
 
+# SVI fit per snapshot/underlying/expiry. rmse is in implied-vol units
+# (decimal, unweighted) so it is comparable across expiries.
+SVI_PARAMS_DDL = """
+CREATE TABLE IF NOT EXISTS svi_params (
+    snapshot_ts  TIMESTAMP NOT NULL,
+    underlying   VARCHAR   NOT NULL,
+    expiry       DATE      NOT NULL,
+    a            DOUBLE,
+    b            DOUBLE,
+    rho          DOUBLE,
+    m            DOUBLE,
+    sigma        DOUBLE,
+    rmse         DOUBLE,
+    n_points     INTEGER   NOT NULL,
+    fit_status   VARCHAR   NOT NULL,   -- ok / too_few_points / bad_input / ...
+    PRIMARY KEY (snapshot_ts, underlying, expiry)
+);
+"""
+
+# Per-quote distance from the fitted smile (input to anomaly detection).
+SVI_RESIDUALS_DDL = """
+CREATE TABLE IF NOT EXISTS svi_residuals (
+    snapshot_ts     TIMESTAMP NOT NULL,
+    underlying      VARCHAR   NOT NULL,
+    expiry          DATE      NOT NULL,
+    option_type     VARCHAR   NOT NULL,
+    strike          DOUBLE    NOT NULL,
+    log_moneyness   DOUBLE,
+    tte_years       DOUBLE,
+    w_market        DOUBLE,
+    w_fit           DOUBLE,
+    own_iv          DOUBLE,
+    fit_iv          DOUBLE,
+    resid_w         DOUBLE,            -- market - fit, total variance
+    resid_iv        DOUBLE,            -- market - fit, implied vol
+    PRIMARY KEY (snapshot_ts, underlying, expiry, option_type, strike)
+);
+"""
+
+
 def get_connection(db_path: Path | str | None = None) -> duckdb.DuckDBPyConnection:
     """Open a DuckDB connection. Use ':memory:' for tests."""
     path = str(db_path if db_path is not None else config.DB_PATH)
@@ -71,3 +111,5 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     """Create tables if they do not exist. Safe to call repeatedly."""
     con.execute(RAW_QUOTES_DDL)
     con.execute(IV_QUOTES_DDL)
+    con.execute(SVI_PARAMS_DDL)
+    con.execute(SVI_RESIDUALS_DDL)

@@ -49,6 +49,12 @@ IV_MAX_VOL: float = 5.0
 # reason "skipped_<flag>" instead of a garbage number.
 IV_SKIP_FLAGS: list[str] = ["crossed_market", "zero_bid"]
 
+# SVI calibration (Stage 4).
+SVI_MIN_POINTS: int = 8  # fewer solved quotes than this -> skip the expiry
+SVI_MIN_REL_SPREAD: float = 0.02  # floor on relative spread when weighting
+SVI_ROBUST_FRACTION: float = 0.05  # soft_l1 scale = this * median(w)
+PLOT_DIR = DATA_DIR / "plots"
+
 # Forward estimation from put-call parity (Stage 3).
 FORWARD_N_PAIRS: int = 5  # use the N strikes closest to spot
 FORWARD_MIN_PAIRS: int = 2  # fewer usable pairs -> fall back to spot
