@@ -116,6 +116,21 @@ REMEDIATION_POLICY: dict[str, dict[str, str]] = {
 }
 REMEDIATION_DEFAULT_ACTION: str = "escalate"  # for any rule not listed above
 
+# Daily report (Stage 8).
+REPORT_DIR = DATA_DIR / "reports"
+REPORT_TOP_N: int = 10  # anomalies listed in the report
+TREND_SNAPSHOTS: int = 7  # prior snapshots shown in the trend table
+
+# Alert thresholds (Stage 8). An alert fires when a value is STRICTLY above
+# its threshold (or, for row counts, below the minimum). These are initial,
+# round-number settings chosen before any history existed; they are not
+# calibrated. Revisit them once weeks of snapshots have accumulated.
+ALERT_ANOMALY_RATE: float = 0.10  # flagged quotes / fitted quotes
+ALERT_CALIBRATION_FAILURE_RATE: float = 0.10  # failed fits / expiries
+ALERT_ZERO_BID_RATE: float = 0.90  # share of zero-bid quotes: likely off-hours pull
+ALERT_MIN_ROWS_PER_TICKER: int = 50  # fewer ingested rows -> ingestion gap
+SLACK_WEBHOOK_ENV: str = "SLACK_WEBHOOK_URL"  # name of the env var; never the URL
+
 # Forward estimation from put-call parity (Stage 3).
 FORWARD_N_PAIRS: int = 5  # use the N strikes closest to spot
 FORWARD_MIN_PAIRS: int = 2  # fewer usable pairs -> fall back to spot

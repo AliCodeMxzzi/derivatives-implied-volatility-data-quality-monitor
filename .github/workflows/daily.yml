@@ -1,0 +1,61 @@
+name: daily-iv-quality
+
+on:
+  schedule:
+    # 19:30 UTC on weekdays = 2:30pm New York (EST) / 3:30pm (EDT): inside US
+    # market hours all year. Market holidays will still run; the zero-bid
+    # alert is what catches those off-hours pulls.
+    - cron: "30 19 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      # Snapshot history lives in the DuckDB file. Runners are wiped after
+      # every run, so we restore/save it through the Actions cache.
+      # CAVEAT: caches can be evicted (unused ~7 days, repo size limits), so
+      # this is best-effort. For durable history use a persistent machine or
+      # object storage (see docs/scheduling.md).
+      - name: Restore database
+        uses: actions/cache/restore@v4
+        with:
+          path: data/ivmon.duckdb
+          key: ivmon-db-${{ github.run_id }}
+          restore-keys: ivmon-db-
+
+      - name: Run pipeline
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python -m ivmon.pipeline --send-alerts
+
+      - name: Save database
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/ivmon.duckdb
+          key: ivmon-db-${{ github.run_id }}
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iv-quality-report
+          path: data/reports/
+          if-no-files-found: warn

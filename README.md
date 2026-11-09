@@ -3,7 +3,17 @@
 A data quality monitor for derivatives implied-volatility data (equity and
 commodity-proxy ETF options). Python + DuckDB.
 
-**Status:** Stage 1 (ingestion into DuckDB). Work in progress.
+**Status:** Stage 8 complete (end-to-end pipeline, report, alerts, scheduling). Final polish pending.
+
+Run everything with one command (pull during US market hours):
+
+```powershell
+python -m ivmon.pipeline                # ingest -> ... -> report -> alerts (dry run)
+python -m ivmon.pipeline --skip-ingest  # re-process the latest stored snapshot
+python -m ivmon.pipeline --send-alerts  # post to Slack if SLACK_WEBHOOK_URL is set
+```
+
+Reports land in `data/reports/`. Scheduling options: see `docs/scheduling.md`.
 
 ## Setup (Windows PowerShell)
 
