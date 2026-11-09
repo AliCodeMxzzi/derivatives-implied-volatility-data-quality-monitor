@@ -6,3 +6,7 @@ scikit-learn>=1.4
 matplotlib>=3.8
 yfinance>=0.2.40
 pytest>=8.0
+# only needed to run the walkthrough notebook
+ipykernel>=6.29
+nbformat>=5.10
+nbconvert>=7.16
