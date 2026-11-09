@@ -144,7 +144,27 @@ def build_svi(
         return 0, 0
 
     quotes = _load_solved_quotes(con, snapshot_ts)
-    param_rows, resid_frames = [], []
+    param_rows, resid_frames = fit_expiries(quotes, snapshot_ts)
+
+    _replace_rows(con, "svi_params", snapshot_ts, pd.DataFrame(param_rows))
+    resid = pd.concat(resid_frames, ignore_index=True) if resid_frames else pd.DataFrame()
+    _replace_rows(con, "svi_residuals", snapshot_ts, resid)
+    n_ok = sum(1 for r in param_rows if r["fit_status"] == "ok")
+    log.info("SVI fits for %s: %d ok of %d expiries", snapshot_ts, n_ok, len(param_rows))
+    return n_ok, len(param_rows)
+
+
+def fit_expiries(
+    quotes: pd.DataFrame, snapshot_ts: datetime,
+) -> tuple[list[dict], list[pd.DataFrame]]:
+    """Fit SVI per underlying/expiry. Returns (param rows, residual frames).
+
+    `quotes` needs the iv_quotes columns strike, forward, tte_years, own_iv,
+    rel_spread, option_type. Pure: no database access, so the remediation
+    step can refit on a filtered set of quotes.
+    """
+    param_rows: list[dict] = []
+    resid_frames: list[pd.DataFrame] = []
     for (underlying, expiry), g in quotes.groupby(["underlying", "expiry"]):
         t = float(g["tte_years"].iloc[0])
         k = np.log(g["strike"].to_numpy(dtype=float) / g["forward"].to_numpy(dtype=float))
@@ -171,13 +191,7 @@ def build_svi(
             "own_iv": iv, "fit_iv": fit_iv, "resid_w": w - w_fit,
             "resid_iv": iv - fit_iv,
         }))
-
-    _replace_rows(con, "svi_params", snapshot_ts, pd.DataFrame(param_rows))
-    resid = pd.concat(resid_frames, ignore_index=True) if resid_frames else pd.DataFrame()
-    _replace_rows(con, "svi_residuals", snapshot_ts, resid)
-    n_ok = sum(1 for r in param_rows if r["fit_status"] == "ok")
-    log.info("SVI fits for %s: %d ok of %d expiries", snapshot_ts, n_ok, len(param_rows))
-    return n_ok, len(param_rows)
+    return param_rows, resid_frames
 
 
 def _replace_rows(

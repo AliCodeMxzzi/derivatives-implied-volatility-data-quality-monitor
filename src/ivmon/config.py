@@ -92,6 +92,30 @@ SYNTH_STALE_SHIFTS: tuple[float, ...] = (0.85, 1.15)  # bid/ask multiplied
 SYNTH_STALE_DAYS: int = 10  # last_trade_ts moved back this far
 SYNTH_IV_FACTORS: tuple[float, ...] = (1.3, 0.7)  # implied vol multiplied
 
+# Remediation policy (Stage 7): rule -> severity -> action.
+#   quarantine = exclude the quote from the surface
+#   correct    = publish the fitted-surface value instead (clearly marked)
+#   escalate   = change nothing; a human / quant must look
+#   none       = no action (finding stays in `anomalies`)
+# Reasoning, so the choices can be defended:
+# - Only residual outliers are quote-level problems we can act on ourselves.
+#   High severity (very far from the fit) -> correct; medium -> quarantine.
+# - Structural findings (arbitrage, parity, stability) point at the model or
+#   the data feed, not one quote: escalate, never auto-edit.
+# - ML findings only escalate at high severity: Stage 6 showed they are near
+#   chance on injected errors, so they must not edit or exclude data.
+# - crossed_market is a Stage 2 flag; a crossed quote is unusable: quarantine.
+REMEDIATION_POLICY: dict[str, dict[str, str]] = {
+    "residual_outlier": {"high": "correct", "medium": "quarantine", "low": "none"},
+    "crossed_market": {"high": "quarantine", "medium": "quarantine", "low": "quarantine"},
+    "butterfly_arbitrage": {"high": "escalate", "medium": "escalate", "low": "none"},
+    "calendar_arbitrage": {"high": "escalate", "medium": "escalate", "low": "none"},
+    "put_call_parity": {"high": "escalate", "medium": "escalate", "low": "none"},
+    "param_stability": {"high": "escalate", "medium": "escalate", "low": "none"},
+    "ml_isolation_forest": {"high": "escalate", "medium": "none", "low": "none"},
+}
+REMEDIATION_DEFAULT_ACTION: str = "escalate"  # for any rule not listed above
+
 # Forward estimation from put-call parity (Stage 3).
 FORWARD_N_PAIRS: int = 5  # use the N strikes closest to spot
 FORWARD_MIN_PAIRS: int = 2  # fewer usable pairs -> fall back to spot

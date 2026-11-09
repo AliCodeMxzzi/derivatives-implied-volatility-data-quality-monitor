@@ -117,6 +117,47 @@ CREATE TABLE IF NOT EXISTS anomalies (
 """
 
 
+# Append-only audit trail. Code only ever INSERTs here. A new remediation run
+# gets a new run_id; older runs stay untouched, and curated_quotes uses the
+# latest run per snapshot.
+REMEDIATION_LOG_DDL = """
+CREATE TABLE IF NOT EXISTS remediation_log (
+    run_id        INTEGER   NOT NULL,
+    run_ts        TIMESTAMP NOT NULL,
+    snapshot_ts   TIMESTAMP NOT NULL,
+    underlying    VARCHAR   NOT NULL,
+    expiry        DATE      NOT NULL,
+    strike        DOUBLE,              -- NULL for expiry-level findings
+    option_type   VARCHAR,             -- NULL for expiry- or pair-level findings
+    action        VARCHAR   NOT NULL CHECK (action IN ('quarantine', 'correct', 'escalate')),
+    rule          VARCHAR   NOT NULL,  -- triggering rule(s), '; '-joined
+    severity      VARCHAR   NOT NULL,  -- highest severity among triggers
+    reason        VARCHAR,             -- finding details + policy applied
+    before_bid    DOUBLE,
+    before_ask    DOUBLE,
+    before_mid    DOUBLE,
+    after_mid     DOUBLE,              -- only for 'correct': the published value
+    is_synthetic  BOOLEAN   NOT NULL DEFAULT FALSE
+);
+"""
+
+# One row per remediation run, even a run with zero actions, so "latest run"
+# is always well defined. Also append-only.
+REMEDIATION_RUNS_DDL = """
+CREATE TABLE IF NOT EXISTS remediation_runs (
+    run_id        INTEGER   NOT NULL PRIMARY KEY,
+    run_ts        TIMESTAMP NOT NULL,
+    snapshot_ts   TIMESTAMP NOT NULL,
+    is_synthetic  BOOLEAN   NOT NULL,
+    n_findings    INTEGER   NOT NULL,
+    n_actions     INTEGER   NOT NULL
+);
+"""
+
+# Surface refit WITHOUT quarantined / corrected quotes (same columns as svi_params).
+SVI_PARAMS_CURATED_DDL = SVI_PARAMS_DDL.replace("svi_params", "svi_params_curated")
+
+
 def get_connection(db_path: Path | str | None = None) -> duckdb.DuckDBPyConnection:
     """Open a DuckDB connection. Use ':memory:' for tests."""
     path = str(db_path if db_path is not None else config.DB_PATH)
@@ -132,3 +173,6 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     con.execute(SVI_PARAMS_DDL)
     con.execute(SVI_RESIDUALS_DDL)
     con.execute(ANOMALIES_DDL)
+    con.execute(REMEDIATION_LOG_DDL)
+    con.execute(REMEDIATION_RUNS_DDL)
+    con.execute(SVI_PARAMS_CURATED_DDL)
