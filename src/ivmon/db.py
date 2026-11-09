@@ -30,6 +30,35 @@ CREATE TABLE IF NOT EXISTS raw_quotes (
 """
 
 
+# Derived layer: our own IV for out-of-the-money quotes, next to vendor IV.
+# Rebuilt per snapshot from clean_quotes, so it can always be regenerated.
+IV_QUOTES_DDL = """
+CREATE TABLE IF NOT EXISTS iv_quotes (
+    snapshot_ts     TIMESTAMP NOT NULL,
+    underlying      VARCHAR   NOT NULL,
+    expiry          DATE      NOT NULL,
+    option_type     VARCHAR   NOT NULL,
+    strike          DOUBLE    NOT NULL,
+    spot            DOUBLE,
+    forward         DOUBLE,
+    forward_method  VARCHAR,             -- parity / spot_fallback / no_forward
+    tte_years       DOUBLE,
+    mid             DOUBLE,
+    rel_spread      DOUBLE,
+    vendor_iv       DOUBLE,
+    own_iv          DOUBLE,              -- NULL when no solution
+    iv_reason       VARCHAR   NOT NULL,  -- ok, or why own_iv is NULL
+    iv_diff         DOUBLE,              -- own_iv - vendor_iv
+    crossed_market  BOOLEAN,
+    zero_bid        BOOLEAN,
+    wide_spread     BOOLEAN,
+    stale_trade     BOOLEAN,
+    low_liquidity   BOOLEAN,
+    PRIMARY KEY (snapshot_ts, underlying, expiry, option_type, strike)
+);
+"""
+
+
 def get_connection(db_path: Path | str | None = None) -> duckdb.DuckDBPyConnection:
     """Open a DuckDB connection. Use ':memory:' for tests."""
     path = str(db_path if db_path is not None else config.DB_PATH)
@@ -41,3 +70,4 @@ def get_connection(db_path: Path | str | None = None) -> duckdb.DuckDBPyConnecti
 def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     """Create tables if they do not exist. Safe to call repeatedly."""
     con.execute(RAW_QUOTES_DDL)
+    con.execute(IV_QUOTES_DDL)

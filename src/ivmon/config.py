@@ -35,6 +35,23 @@ STALE_TRADE_DAYS: float = 4.0  # last trade older than this -> stale_trade
 EXPIRY_CLOSE_UTC_HOUR: int = 21
 DAYS_PER_YEAR: float = 365.0
 
-# Pricing assumptions (used from Stage 3 onward).
-RISK_FREE_RATE: float = 0.04  # simplifying assumption, flat rate
-DIVIDEND_YIELD: float = 0.0  # simplifying assumption, continuous yield q
+# Pricing assumptions (Stage 3).
+RISK_FREE_RATE: float = 0.04  # simplifying assumption: one flat rate for all expiries
+DIVIDEND_YIELD: float = 0.0  # simplifying assumption: continuous yield q.
+#   Only used in the spot-based forward fallback; when the forward comes
+#   from put-call parity, dividends and borrow cost are absorbed into it.
+
+# IV solver bounds (annualised vol). Prices outside this range -> NaN + reason.
+IV_MIN_VOL: float = 1e-4
+IV_MAX_VOL: float = 5.0
+
+# Quote flags that make a mid unusable for IV. These rows get a NaN IV with
+# reason "skipped_<flag>" instead of a garbage number.
+IV_SKIP_FLAGS: list[str] = ["crossed_market", "zero_bid"]
+
+# Forward estimation from put-call parity (Stage 3).
+FORWARD_N_PAIRS: int = 5  # use the N strikes closest to spot
+FORWARD_MIN_PAIRS: int = 2  # fewer usable pairs -> fall back to spot
+FORWARD_MAX_LOG_MONEYNESS: float = 0.10  # only strikes within ~10% of spot
+# A parity pair needs both legs free of these flags:
+FORWARD_EXCLUDE_FLAGS: list[str] = ["crossed_market", "zero_bid", "wide_spread"]
