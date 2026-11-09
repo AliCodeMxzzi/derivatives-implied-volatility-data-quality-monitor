@@ -99,6 +99,24 @@ CREATE TABLE IF NOT EXISTS svi_residuals (
 """
 
 
+# Findings from the rule-based checks. strike / option_type are NULL when a
+# finding applies to a whole expiry (or a call/put pair). is_synthetic marks
+# findings produced on injected test data (Stage 6); never mix without it.
+ANOMALIES_DDL = """
+CREATE TABLE IF NOT EXISTS anomalies (
+    snapshot_ts   TIMESTAMP NOT NULL,
+    underlying    VARCHAR   NOT NULL,
+    expiry        DATE      NOT NULL,
+    strike        DOUBLE,
+    option_type   VARCHAR,
+    rule          VARCHAR   NOT NULL,
+    severity      VARCHAR   NOT NULL CHECK (severity IN ('low', 'medium', 'high')),
+    details       VARCHAR,
+    is_synthetic  BOOLEAN   NOT NULL DEFAULT FALSE
+);
+"""
+
+
 def get_connection(db_path: Path | str | None = None) -> duckdb.DuckDBPyConnection:
     """Open a DuckDB connection. Use ':memory:' for tests."""
     path = str(db_path if db_path is not None else config.DB_PATH)
@@ -113,3 +131,4 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     con.execute(IV_QUOTES_DDL)
     con.execute(SVI_PARAMS_DDL)
     con.execute(SVI_RESIDUALS_DDL)
+    con.execute(ANOMALIES_DDL)

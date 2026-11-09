@@ -55,6 +55,25 @@ SVI_MIN_REL_SPREAD: float = 0.02  # floor on relative spread when weighting
 SVI_ROBUST_FRACTION: float = 0.05  # soft_l1 scale = this * median(w)
 PLOT_DIR = DATA_DIR / "plots"
 
+# Rule-based anomaly checks (Stage 5).
+BUTTERFLY_TOL: float = 1e-6  # flag when g(k) < -tol
+BUTTERFLY_HIGH: float = -0.5  # g(k) below this -> severity high (else medium)
+CALENDAR_TOL_REL: float = 1e-4  # tolerated relative drop in total variance
+CALENDAR_MEDIUM_REL: float = 0.02  # relative drop >= this -> medium
+CALENDAR_HIGH_REL: float = 0.10  # relative drop >= this -> high
+PARITY_TOL_MULT: float = 1.5  # allowed |C-P-D(F-K)| = mult * avg(C,P spread)
+PARITY_MIN_ABS: float = 0.01  # but never tighter than one cent
+PARITY_MAX_LOG_MONEYNESS: float = 0.10  # American early exercise grows away from ATM
+PARITY_MEDIUM_RATIO: float = 2.0  # excess / tolerance >= this -> medium
+PARITY_HIGH_RATIO: float = 5.0  # ... >= this -> high
+RESID_Z_THRESHOLD: float = 3.5  # robust z (Iglewicz-Hoaglin) above this -> flag
+RESID_MIN_ABS_IV: float = 0.01  # and |residual| >= 1 vol point (guards tiny MAD)
+RESID_MEDIUM_Z: float = 6.0
+RESID_HIGH_Z: float = 10.0
+STABILITY_GRID_K: float = 0.10  # compare smiles for k in [-this, +this]
+STABILITY_RMS_IV: float = 0.03  # RMS smile change above 3 vol pts -> flag
+STABILITY_HIGH_RMS_IV: float = 0.08
+
 # Forward estimation from put-call parity (Stage 3).
 FORWARD_N_PAIRS: int = 5  # use the N strikes closest to spot
 FORWARD_MIN_PAIRS: int = 2  # fewer usable pairs -> fall back to spot
