@@ -6,3 +6,4 @@ __pycache__/
 data/*
 !data/.gitkeep
 .env
+cursor_prompt_iv_quality_monitor.md
